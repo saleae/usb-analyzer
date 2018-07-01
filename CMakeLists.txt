@@ -1,0 +1,34 @@
+cmake_minimum_required (VERSION 3.11)
+project(usb_analyzer)
+
+# custom CMake Modules are located in the cmake directory.
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+include(ExternalAnalyzerSDK)
+
+set(SOURCES 
+src/USBAnalyzer.cpp
+src/USBAnalyzer.h
+src/USBAnalyzerResults.cpp
+src/USBAnalyzerResults.h
+src/USBAnalyzerSettings.cpp
+src/USBAnalyzerSettings.h
+src/USBControlTransfers.cpp
+src/USBControlTransfers.h
+src/USBEnums.h
+src/USBLookupTables.cpp
+src/USBLookupTables.h
+src/USBSimulationDataGenerator.cpp
+src/USBSimulationDataGenerator.h
+src/USBTypes.cpp
+src/USBTypes.h
+)
+
+add_library(usb_analyzer SHARED ${SOURCES})
+target_link_libraries(usb_analyzer PRIVATE Saleae::AnalyzerSDK)
+
+if(MSVC)
+    install(TARGETS usb_analyzer RUNTIME DESTINATION ".")
+else()
+    install(TARGETS usb_analyzer LIBRARY DESTINATION ".")
+endif()
