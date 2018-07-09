@@ -28,9 +28,9 @@ add_library(usb_analyzer SHARED ${SOURCES})
 target_link_libraries(usb_analyzer PRIVATE Saleae::AnalyzerSDK)
 
 if(MSVC)
-    install(TARGETS usb_analyzer RUNTIME DESTINATION ".")
+    install(TARGETS usb_analyzer RUNTIME DESTINATION "Analyzers")
 else()
-    install(TARGETS usb_analyzer LIBRARY DESTINATION ".")
+    install(TARGETS usb_analyzer LIBRARY DESTINATION "Analyzers")
 endif()
 
 set_post_build_destination(usb_analyzer)
