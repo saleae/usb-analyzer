@@ -32,3 +32,5 @@ if(MSVC)
 else()
     install(TARGETS usb_analyzer LIBRARY DESTINATION ".")
 endif()
+
+set_post_build_destination(usb_analyzer)

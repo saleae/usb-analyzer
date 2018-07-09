@@ -37,3 +37,12 @@ if(NOT TARGET Saleae::AnalyzerSDK)
 
     endif()
 endif()
+
+# Optionally copy the compiled library after build to ${POST_BUILD_DESTINATION}, if POST_BUILD_DESTINATION is defined.
+macro(set_post_build_destination target_name)
+    if(DEFINED POST_BUILD_DESTINATION)
+        add_custom_command(TARGET ${target_name} 
+                        POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${target_name}> ${POST_BUILD_DESTINATION})
+    endif()
+endmacro()
