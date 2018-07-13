@@ -38,11 +38,20 @@ if(NOT TARGET Saleae::AnalyzerSDK)
     endif()
 endif()
 
-# Optionally copy the compiled library after build to ${POST_BUILD_DESTINATION}, if POST_BUILD_DESTINATION is defined.
-macro(set_post_build_destination target_name)
-    if(DEFINED POST_BUILD_DESTINATION)
-        add_custom_command(TARGET ${target_name} 
-                        POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${target_name}> ${POST_BUILD_DESTINATION})
-    endif()
-endmacro()
+function(add_analyzer_plugin TARGET)
+    set(options )
+    set(single_value_args )
+    set(multi_value_args SOURCES)
+    cmake_parse_arguments( _p "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN} )
+
+
+    add_library(${TARGET} MODULE ${_p_SOURCES})
+    target_link_libraries(${TARGET} PRIVATE Saleae::AnalyzerSDK)
+
+    set(ANALYZER_DESTINATION "Analyzers")
+    install(TARGETS ${TARGET} RUNTIME DESTINATION ${ANALYZER_DESTINATION}
+                              LIBRARY DESTINATION ${ANALYZER_DESTINATION})
+
+    set_target_properties(${TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ANALYZER_DESTINATION}
+                                               LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${ANALYZER_DESTINATION})
+endfunction()
