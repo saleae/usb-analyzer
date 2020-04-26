@@ -1,0 +1,107 @@
+# Configuration for automated CI building using Microsoft Azure Pipelines.
+# https://azure.microsoft.com/en-us/services/devops/pipelines/
+# This will build this analyzer for all 3 target platforms.
+# It will create github releases for tagged commits.
+
+# In order to publish releases to github, you must add a new GitHub service connection in your project settings, under Pipelines -> Service Connections.
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints?view=azure-devops&tabs=yaml#sep-github
+# if you don't setup a github connection, but intend to use azure CI, then you will need to delete the GithubRelease@0 task at the bottom of this file.
+# store the name of your service connection in GITHUB_CONNECTION.
+variables:
+  GITHUB_CONNECTION: 'github.com_Marcus10110'
+
+# trigger: always build commits to master, all commits to open pull requests, and all tags.
+trigger:
+  branches:
+    include:
+      - 'master'
+  tags:
+    include:
+      - '*'
+pr:
+  - '*'
+
+# build for MacOS, Linux, and Windows.
+jobs:
+  - job: build
+    pool:
+      vmImage: $(imageName)
+    strategy:
+      matrix:
+        windows:
+          imageName: 'vs2017-win2016'
+          CMAKE_ARGS: '-G "Visual Studio 15 Win64"'
+          BUILD_ARGS: '--config RelWithDebInfo'
+        linux:
+          imageName: 'ubuntu-16.04'
+          CMAKE_ARGS: '-DCMAKE_BUILD_TYPE=RelWithDebInfo'
+          BUILD_ARGS: ''
+        mac:
+          imageName: 'macOS-10.15'
+          CMAKE_ARGS: '-DCMAKE_BUILD_TYPE=RelWithDebInfo'
+          BUILD_ARGS: ''
+    displayName: 'Build and deploy graph-io'
+
+    steps:
+    - script: |
+        mkdir build
+        cd build
+        cmake $(CMAKE_ARGS) ..
+        cmake --build . $(BUILD_ARGS)
+      displayName: 'Build'
+
+    - script: |
+        cd build
+        install_name_tool -change @executable_path/libAnalyzer.dylib @rpath/libAnalyzer.dylib Analyzers/*.so
+      displayName: 'MacOS: fix install name'
+      condition: eq( variables['Agent.OS'], 'Darwin' )
+
+    # this publishes to azure pipelines, so that other CI agents can load these files, later in the pipeline
+    - publish: $(System.DefaultWorkingDirectory)/build/Analyzers/RelWithDebInfo
+      artifact: AnalyzerLibWin
+      condition: eq( variables['Agent.OS'], 'Windows_NT' )
+      displayName: 'Windows: Publish'
+    - publish: $(System.DefaultWorkingDirectory)/build/Analyzers
+      artifact: AnalyzerLibMac
+      condition: eq( variables['Agent.OS'], 'Darwin' )
+      displayName: 'MacOS: Publish'
+    - publish: $(System.DefaultWorkingDirectory)/build/Analyzers
+      artifact: AnalyzerLibLinux
+      condition: eq( variables['Agent.OS'], 'Linux' )
+      displayName: 'Linux: Publish'
+
+  # This job downloads the analyzer library compiled from the three different platforms, and preps it for publishing.
+  - job: deploy
+    dependsOn:
+      - build
+    displayName: 'deploy'
+    pool:
+      vmImage: 'ubuntu-16.04'
+    steps:
+    - download: current
+      artifact: AnalyzerLibLinux
+    - download: current
+      artifact: AnalyzerLibWin
+      patterns: '*.dll'
+    - download: current
+      artifact: AnalyzerLibMac
+    - script: |
+        export REPO_NAME=$(echo $(Build.Repository.Name) | sed 's|.*/||')
+        echo $REPO_NAME
+        pushd $(Build.ArtifactStagingDirectory)
+        mkdir win osx linux
+        popd
+        cp $(Pipeline.Workspace)/AnalyzerLibWin/* $(Build.ArtifactStagingDirectory)/win
+        cp $(Pipeline.Workspace)/AnalyzerLibMac/* $(Build.ArtifactStagingDirectory)/osx
+        cp $(Pipeline.Workspace)/AnalyzerLibLinux/* $(Build.ArtifactStagingDirectory)/linux
+        cd $(Build.ArtifactStagingDirectory)
+        zip -r ${REPO_NAME}-bin.zip .
+        unzip -l ${REPO_NAME}-bin.zip
+    # This creates (or replaces) a github release for tagged commits only. The release name will be the tag name.
+    # Note, if you do not want to setup a github service connection, but want to use CI, you will need to delete this task.
+    - task: GithubRelease@0 
+      displayName: 'Create GitHub Release'      
+      inputs:
+        gitHubConnection: $(GITHUB_CONNECTION)
+        repositoryName: $(Build.Repository.Name)           
+        assets: $(Build.ArtifactStagingDirectory)/*.zip
