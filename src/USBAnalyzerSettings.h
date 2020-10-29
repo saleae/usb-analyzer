@@ -8,28 +8,28 @@
 
 class USBAnalyzerSettings : public AnalyzerSettings
 {
-public:
-	USBAnalyzerSettings();
-	virtual ~USBAnalyzerSettings();
+  public:
+    USBAnalyzerSettings();
+    virtual ~USBAnalyzerSettings();
 
-	virtual bool SetSettingsFromInterfaces();
-	virtual void LoadSettings(const char* settings);
-	virtual const char* SaveSettings();
+    virtual bool SetSettingsFromInterfaces();
+    virtual void LoadSettings( const char* settings );
+    virtual const char* SaveSettings();
 
-	void UpdateInterfacesFromSettings();
+    void UpdateInterfacesFromSettings();
 
-	Channel			mDPChannel;
-	Channel			mDMChannel;
+    Channel mDPChannel;
+    Channel mDMChannel;
 
-	USBSpeed		mSpeed;
-	USBDecodeLevel	mDecodeLevel;
+    USBSpeed mSpeed;
+    USBDecodeLevel mDecodeLevel;
 
-protected:
-	AnalyzerSettingInterfaceChannel		mDPChannelInterface;
-	AnalyzerSettingInterfaceChannel		mDMChannelInterface;
+  protected:
+    AnalyzerSettingInterfaceChannel mDPChannelInterface;
+    AnalyzerSettingInterfaceChannel mDMChannelInterface;
 
-	AnalyzerSettingInterfaceNumberList	mSpeedInterface;
-	AnalyzerSettingInterfaceNumberList	mDecodeLevelInterface;
+    AnalyzerSettingInterfaceNumberList mSpeedInterface;
+    AnalyzerSettingInterfaceNumberList mDecodeLevelInterface;
 };
 
-#endif	// USB_ANALYZER_SETTINGS_H
+#endif // USB_ANALYZER_SETTINGS_H
