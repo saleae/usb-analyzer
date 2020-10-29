@@ -82,7 +82,9 @@ jobs:
       artifact: AnalyzerLibLinux
     - download: current
       artifact: AnalyzerLibWin
-      patterns: '*.dll'
+      patterns: |
+        *.dll
+        *.pdb
     - download: current
       artifact: AnalyzerLibMac
     - script: |
