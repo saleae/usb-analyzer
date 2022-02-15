@@ -9,6 +9,7 @@
 USBAnalyzer::USBAnalyzer() : mSimulationInitilized( false )
 {
     SetAnalyzerSettings( &mSettings );
+    UseFrameV2();
 }
 
 USBAnalyzer::~USBAnalyzer()
@@ -118,6 +119,10 @@ void USBAnalyzer::WorkerThread()
                 f.mData1 = f.mData2 = 0;
 
                 mResults->AddFrame( f );
+
+                FrameV2 frame_v2_keep_alive;
+                mResults->AddFrameV2( frame_v2_keep_alive, "keeyAlive", lastFrameEnd, s.mSampleEnd );
+                 
                 mResults->CommitResults();
 
                 lastFrameEnd = s.mSampleEnd;
@@ -133,6 +138,10 @@ void USBAnalyzer::WorkerThread()
                 f.mData1 = f.mData2 = 0;
 
                 mResults->AddFrame( f );
+
+                FrameV2 frame_v2_reset;
+                mResults->AddFrameV2( frame_v2_reset, "reset", lastFrameEnd, s.mSampleEnd );
+
                 mResults->CommitResults();
 
                 lastFrameEnd = s.mSampleEnd;
@@ -180,7 +189,7 @@ const char* USBAnalyzer::GetAnalyzerName() const
 
 const char* GetAnalyzerName()
 {
-    return "USB LS and FS";
+    return "USB(alpha) LS and FS";
 }
 
 Analyzer* CreateAnalyzer()

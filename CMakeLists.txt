@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.11)
 project(usb_analyzer)
 
 
+add_definitions( -DLOGIC2 )
 
 # enable generation of compile_commands.json, helpful for IDEs to locate include files.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

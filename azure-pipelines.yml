@@ -33,7 +33,7 @@ jobs:
           CMAKE_ARGS: '-G "Visual Studio 15 Win64"'
           BUILD_ARGS: '--config RelWithDebInfo'
         linux:
-          imageName: 'ubuntu-16.04'
+          imageName: 'ubuntu-18.04'
           CMAKE_ARGS: '-DCMAKE_BUILD_TYPE=RelWithDebInfo'
           BUILD_ARGS: ''
         mac:
@@ -76,7 +76,7 @@ jobs:
       - build
     displayName: 'deploy'
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-18.04'
     steps:
     - download: current
       artifact: AnalyzerLibLinux

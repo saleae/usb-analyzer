@@ -108,6 +108,8 @@ void USBPacket::AddSyncAndPidFrames( USBAnalyzerResults* pResults, USBFrameFlags
     f.mData1 = f.mData2 = 0;
     f.mFlags = FF_None;
     pResults->AddFrame( f );
+    FrameV2 frame_v2_sync;
+    pResults->AddFrameV2( frame_v2_sync, "sync", mBitBeginSamples.front(), *(mBitBeginSamples.begin() + 8) );
 
     // PID
     f.mStartingSampleInclusive = *( mBitBeginSamples.begin() + 8 );
@@ -117,6 +119,9 @@ void USBPacket::AddSyncAndPidFrames( USBAnalyzerResults* pResults, USBFrameFlags
     f.mData2 = 0;
     f.mFlags = flagPID;
     pResults->AddFrame( f );
+    FrameV2 frame_v2_pid;
+    frame_v2_pid.AddByte( "pid", ( U8 )mPID );
+    pResults->AddFrameV2( frame_v2_pid, "pid",*( mBitBeginSamples.begin() + 8), *( mBitBeginSamples.begin() + 16) );
 }
 
 void USBPacket::AddEOPFrame( USBAnalyzerResults* pResults )
@@ -131,6 +136,9 @@ void USBPacket::AddEOPFrame( USBAnalyzerResults* pResults )
     f.mFlags = FF_None;
     f.mType = FT_EOP;
     pResults->AddFrame( f );
+
+    FrameV2 frame_v2_eop;
+    pResults->AddFrameV2( frame_v2_eop, "eop",*( mBitBeginSamples.begin() + 8), *( mBitBeginSamples.begin() + 16) );
 }
 
 void USBPacket::AddCRC16Frame( USBAnalyzerResults* pResults )
@@ -145,6 +153,19 @@ void USBPacket::AddCRC16Frame( USBAnalyzerResults* pResults )
     f.mData1 = mCRC;
     f.mData2 = CalcCRC16();
     pResults->AddFrame( f );
+
+    FrameV2 frame_v2_crc;
+    U8 crc_bytearray[ 2 ];
+    U8 ccrc_bytearray[ 2 ];
+
+    crc_bytearray[ 0 ] = f.mData1 >> 8;
+    crc_bytearray[ 1 ] = f.mData1 >> 0;
+    ccrc_bytearray[ 0 ] = f.mData2 >> 8;
+    ccrc_bytearray[ 1 ] = f.mData2 >> 0;
+
+    frame_v2_crc.AddByteArray( "crc", crc_bytearray, 2 );
+    frame_v2_crc.AddByteArray( "ccrc", ccrc_bytearray, 2 );
+    pResults->AddFrameV2( frame_v2_crc, "crc16", *( mBitBeginSamples.end() - 17 ), mBitBeginSamples.back() );
 }
 
 U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flagPID )
@@ -154,6 +175,9 @@ U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flag
     // make the analyzer frames for this packet
     Frame f;
     f.mFlags = FF_None;
+    FrameV2 fv2;
+    const char* fv2_type;
+    U8 frame_bytearray[ 2 ];
 
     // do the payload & CRC frames
     if( IsTokenPacket() || IsSOFPacket() )
@@ -168,15 +192,23 @@ U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flag
             f.mType = FT_FrameNum;
             f.mData1 = GetFrameNum();
             f.mData2 = 0;
+            frame_bytearray[ 0 ] = f.mData1 >> 8;
+            frame_bytearray[ 1 ] = f.mData1 >> 0;
+            fv2.AddByteArray( "framenum", frame_bytearray, 2 );
+            fv2_type = "frame";
         }
         else
         {
             f.mType = FT_AddrEndp;
             f.mData1 = GetAddress();
             f.mData2 = GetEndpoint();
+            fv2.AddByte( "addr", ( U8 )f.mData1 );
+            fv2.AddByte( "endpoint", ( U8 )f.mData2 );
+            fv2_type = "addrendp";
         }
 
         pResults->AddFrame( f );
+        pResults->AddFrameV2( fv2, fv2_type, *( mBitBeginSamples.begin() + 16 ), *( mBitBeginSamples.begin() + 27 ) );
 
         // CRC5
         f.mStartingSampleInclusive = *( mBitBeginSamples.begin() + 27 );
@@ -186,10 +218,24 @@ U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flag
         f.mData1 = mCRC;
         f.mData2 = CalcCRC5( GetLastWord() & 0x7ff );
         pResults->AddFrame( f );
+
+        FrameV2 frame_v2_crc;
+        U8 crc_bytearray[ 2 ];
+        U8 ccrc_bytearray[ 2 ];
+
+        crc_bytearray[ 0 ] = f.mData1 >> 8;
+        crc_bytearray[ 1 ] = f.mData1 >> 0;
+        ccrc_bytearray[ 0 ] = f.mData2 >> 8;
+        ccrc_bytearray[ 1 ] = f.mData2 >> 0;
+
+        frame_v2_crc.AddByteArray( "crc", crc_bytearray, 2 );
+        frame_v2_crc.AddByteArray( "ccrc", ccrc_bytearray, 2 );
+        pResults->AddFrameV2( frame_v2_crc, "crc5", *( mBitBeginSamples.begin() + 27 ), mBitBeginSamples.back() );
     }
     else if( IsDataPacket() )
     {
         // raw data
+        FrameV2 fv2;
         size_t bc;
         f.mType = FT_Byte;
         f.mData2 = 0;
@@ -200,6 +246,8 @@ U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flag
             f.mData1 = mData[ bc ];
 
             pResults->AddFrame( f );
+            fv2.AddByte( "data", mData[ bc ] );
+            pResults->AddFrameV2( fv2, "result", *( mBitBeginSamples.begin() + bc * 8 ), *( mBitBeginSamples.begin() + ( bc + 1 ) * 8 ) );
         }
 
         AddCRC16Frame( pResults );
@@ -218,18 +266,21 @@ U64 USBPacket::AddRawByteFrames( USBAnalyzerResults* pResults )
     // raw data
     size_t bc;
     Frame f;
+    FrameV2 fv2;
     f.mType = FT_Byte;
     f.mData2 = 0;
     f.mFlags = FF_None;
-    std::string bytes_row;
+    //std::string bytes_row;
     for( bc = 0; bc < mData.size(); ++bc )
     {
-        bytes_row += int2str_sal( mData[ bc ], Hexadecimal, 8 ) + ", ";
+        //bytes_row += int2str_sal( mData[ bc ], Hexadecimal, 8 ) + ", ";
 
         f.mStartingSampleInclusive = *( mBitBeginSamples.begin() + bc * 8 );
         f.mEndingSampleInclusive = *( mBitBeginSamples.begin() + ( bc + 1 ) * 8 );
         f.mData1 = mData[ bc ];
         pResults->AddFrame( f );
+        fv2.AddByte( "data", mData[ bc ] );
+        pResults->AddFrameV2( fv2, "result", *( mBitBeginSamples.begin() + bc * 8 ), *( mBitBeginSamples.begin() + ( bc + 1 ) * 8 ) );
     }
 
     // add the EOP frame
@@ -240,6 +291,8 @@ U64 USBPacket::AddRawByteFrames( USBAnalyzerResults* pResults )
     f.mFlags = FF_None;
     f.mType = FT_EOP;
     pResults->AddFrame( f );
+    FrameV2 frame_v2_eop;
+    pResults->AddFrameV2( frame_v2_eop, "eop", mBitBeginSamples.back(), mSampleEnd );
 
     pResults->CommitResults();
 
@@ -257,6 +310,9 @@ U64 USBPacket::AddErrorFrame( USBAnalyzerResults* pResults )
     f.mType = FT_Error;
     pResults->AddFrame( f );
 
+    FrameV2 frame_v2_error;
+    pResults->AddFrameV2( frame_v2_error, "error", mSampleBegin, mSampleEnd );
+
     pResults->CommitResults();
 
     return f.mEndingSampleInclusive;
@@ -265,6 +321,7 @@ U64 USBPacket::AddErrorFrame( USBAnalyzerResults* pResults )
 void USBSignalState::AddFrame( USBAnalyzerResults* res )
 {
     Frame f;
+    FrameV2 fv2;
     f.mStartingSampleInclusive = mSampleBegin;
     f.mEndingSampleInclusive = mSampleEnd;
     f.mType = FT_Signal;
@@ -272,6 +329,9 @@ void USBSignalState::AddFrame( USBAnalyzerResults* res )
     f.mData2 = 0;
 
     res->AddFrame( f );
+    fv2.AddInteger( "state", mState );
+    res->AddFrameV2( fv2, "signal", mSampleBegin, mSampleEnd );
+    
     res->CommitResults();
 }
 
