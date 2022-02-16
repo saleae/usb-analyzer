@@ -78,22 +78,70 @@ https://cmake.org/download/
 Building the analyzer:
 ```
 mkdir build
-cd build -A x64
+cd build
 cmake ..
 ```
 
-Then, open the newly created solution file located here: `build\serial_analyzer.sln`
+Then, open the newly created solution file located here: `build\usb_analyzer.sln`
 
 
 ## Output Frame Format
   
-### Frame Type: `"data"`
+### Frame Type: `"addrendp"`
+
+Address and End Point
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `data` | bytes | The serial word, the width in bits is controlled by the serial settings |
-| `error` | str | (optional) Present if an error was detected when decoding this word |
-| `address` | bool | (optional) Present if multi-processor or multi-drop bus special modes were selected. True indicates that this is an address byte |
+| `addr` | bytes | usb addr |
+| `endpoint` | bytes | endpoint |
 
-A single serial word
+### Frame Type: `"crc16"`
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `crc` | bytes | crc |
+| `ccrc` | bytes | calculated crd |
 
+### Frame Type: `"crc5"`
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `crc` | bytes | crc |
+| `ccrc` | bytes | calculated crd |
+
+### Frame Type: `"EOP"`
+
+End of Packet
+
+### Frame Type: `"frame"`
+
+Start of frame
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `framenum` | bytes | 16 bit frame number |
+
+### Frame Type: `"pid"`
+
+Packet type id
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `pid` | bytes | packet id  | 
+|       |       |   0x69 = IN |
+|       |       |   0xE1 = OUT |
+|       |       |   0xA5 = SOF |
+|       |       |   0x2D = SETUP |
+|       |       |   0xC3 = DATA0 |
+|       |       |   0x4B = DATA1 |
+
+### Frame Type: `"result"`
+
+one data byte
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `out` | byte | one byte of data |
+
+### Frame Type: `"sync"`
+
+End of Packet
