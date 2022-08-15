@@ -88,25 +88,41 @@ void USBPacket::AddStandardSetupPacketFrame( USBAnalyzerResults* pResults, USBCo
 {
     U8 bRequestType = GetDataPayload( 0, 1 );
     U8 bRequest = GetDataPayload( 1, 1 );
+    U16 wValue = GetDataPayload( 2, 2 );
     U16 wIndex = GetDataPayload( 4, 2 );
     U16 wLength = GetDataPayload( 6, 2 );
+
+    FrameV2 fv2;
 
     bool isRecipientInterface = ( bRequestType & 0x1f ) == 1;
     bool isRecipientEndpoint = ( bRequestType & 0x1f ) == 2;
 
+    fv2.AddByte( "bmRequestType", bRequestType );
     if( wLength )
         pResults->AddFrame( GetDataPayloadField( 0, 1, address, "bmRequestType", Fld_bmRequestType, FF_SetupBegin ) );
     else
         pResults->AddFrame( GetDataPayloadField( 0, 1, address, "bmRequestType", Fld_bmRequestType_NoData, FF_SetupBegin ) );
 
+    fv2.AddByte( "bRequest", bRequest );
     pResults->AddFrame( GetDataPayloadField( 1, 1, address, "bRequest", Fld_bRequest_Standard ) );
 
     if( bRequest == SET_DESCRIPTOR || bRequest == GET_DESCRIPTOR )
+    {
         pResults->AddFrame( GetDataPayloadField( 2, 2, address, "wValue", Fld_wValue_Descriptor ) );
+        fv2.AddString( "desc", "descriptor" );
+    }
     else if( bRequest == SET_ADDRESS )
+    {
         pResults->AddFrame( GetDataPayloadField( 2, 2, address, "wValue", Fld_wValue_Address ) );
+        fv2.AddString( "desc", "descriptor" );
+    }
     else
         pResults->AddFrame( GetDataPayloadField( 2, 2, address, "wValue" ) );
+
+    U8 wValue_bytearray[ 2 ];
+    wValue_bytearray[ 0 ] = wValue >> 8;
+    wValue_bytearray[ 1 ] = wValue >> 0;
+    fv2.AddByteArray( "wValue", wValue_bytearray, 2 );
 
     U8 hiByte = GetDataPayload( 3, 1 );
     U8 loByte = GetDataPayload( 2, 1 );
@@ -130,15 +146,29 @@ void USBPacket::AddStandardSetupPacketFrame( USBAnalyzerResults* pResults, USBCo
         pResults->AddFrame( GetDataPayloadField( 4, 2, address, "wIndex" ) );
     }
 
+    U8 wIndex_bytearray[ 2 ];
+    wIndex_bytearray[ 0 ] = wIndex >> 8;
+    wIndex_bytearray[ 1 ] = wIndex >> 0;
+    fv2.AddByteArray( "wIndex", wIndex_bytearray, 2 );
+
     pResults->AddFrame( GetDataPayloadField( 6, 2, address, "wLength" ) );
+
+    U8 wLength_bytearray[ 2 ];
+    wLength_bytearray[ 0 ] = wLength >> 8;
+    wLength_bytearray[ 1 ] = wLength >> 0;
+    fv2.AddByteArray( "wLength", wLength_bytearray, 2 );
+
+    pResults->AddFrameV2( fv2, "protocol", mBitBeginSamples[ 16 ], mBitBeginSamples[ 16 + ( 8 ) * 8 ] );
 }
 
 void USBPacket::AddClassSetupPacketFrame( USBAnalyzerResults* pResults, USBControlTransferParser& parser, U8 address )
 {
     U8 bRequestType = GetDataPayload( 0, 1 );
     U8 bRequest = GetDataPayload( 1, 1 );
+    U16 wValue = GetDataPayload( 2, 2 );
     U16 wIndex = GetDataPayload( 4, 2 );
     U16 wLength = GetDataPayload( 6, 2 );
+    FrameV2 fv2;
 
     bool isRecipientInterface = ( bRequestType & 0x1f ) == 1;
     bool isRecipientEndpoint = ( bRequestType & 0x1f ) == 2;
@@ -236,14 +266,38 @@ void USBPacket::AddClassSetupPacketFrame( USBAnalyzerResults* pResults, USBContr
         pResults->AddFrame( GetDataPayloadField( 4, 2, address, "wIndex" ) );
 
     pResults->AddFrame( GetDataPayloadField( 6, 2, address, "wLength" ) );
+
+    fv2.AddByte( "bmRequestType", bRequestType );
+    fv2.AddByte( "bRequest", bRequest );
+
+    U8 wValue_bytearray[ 2 ];
+    wValue_bytearray[ 0 ] = wValue >> 8;
+    wValue_bytearray[ 1 ] = wValue >> 0;
+    fv2.AddByteArray( "wValue", wValue_bytearray, 2 );
+
+    U8 wIndex_bytearray[ 2 ];
+    wIndex_bytearray[ 0 ] = wIndex >> 8;
+    wIndex_bytearray[ 1 ] = wIndex >> 0;
+    fv2.AddByteArray( "wIndex", wIndex_bytearray, 2 );
+
+    U8 wLength_bytearray[ 2 ];
+    wLength_bytearray[ 0 ] = wLength >> 8;
+    wLength_bytearray[ 1 ] = wLength >> 0;
+    fv2.AddByteArray( "wLength", wLength_bytearray, 2 );
+
+    pResults->AddFrameV2( fv2, "protocol", mBitBeginSamples[ 16 ], mBitBeginSamples[ 16 + ( 8 ) * 8 ] );
+
+
 }
 
 void USBPacket::AddVendorSetupPacketFrame( USBAnalyzerResults* pResults, USBControlTransferParser& parser, U8 address )
 {
     U8 bRequestType = GetDataPayload( 0, 1 );
     U8 bRequest = GetDataPayload( 1, 1 );
+    U16 wValue = GetDataPayload( 2, 2 );
     U16 wIndex = GetDataPayload( 4, 2 );
     U16 wLength = GetDataPayload( 6, 2 );
+    FrameV2 fv2;
 
     bool isRecipientInterface = ( bRequestType & 0x1f ) == 1;
     bool isRecipientEndpoint = ( bRequestType & 0x1f ) == 2;
@@ -267,6 +321,26 @@ void USBPacket::AddVendorSetupPacketFrame( USBAnalyzerResults* pResults, USBCont
         pResults->AddFrame( GetDataPayloadField( 4, 2, address, "wIndex" ) );
 
     pResults->AddFrame( GetDataPayloadField( 6, 2, address, "wLength" ) );
+
+    fv2.AddByte( "bmRequestType", bRequestType );
+    fv2.AddByte( "bRequest", bRequest );
+
+    U8 wValue_bytearray[ 2 ];
+    wValue_bytearray[ 0 ] = wValue >> 8;
+    wValue_bytearray[ 1 ] = wValue >> 0;
+    fv2.AddByteArray( "wValue", wValue_bytearray, 2 );
+
+    U8 wIndex_bytearray[ 2 ];
+    wIndex_bytearray[ 0 ] = wIndex >> 8;
+    wIndex_bytearray[ 1 ] = wIndex >> 0;
+    fv2.AddByteArray( "wIndex", wIndex_bytearray, 2 );
+
+    U8 wLength_bytearray[ 2 ];
+    wLength_bytearray[ 0 ] = wLength >> 8;
+    wLength_bytearray[ 1 ] = wLength >> 0;
+    fv2.AddByteArray( "wLength", wLength_bytearray, 2 );
+
+    pResults->AddFrameV2( fv2, "protocol", mBitBeginSamples[ 16 ], mBitBeginSamples[ 16 + ( 8 ) * 8 ] );
 }
 
 U64 USBPacket::AddSetupPacketFrame( USBAnalyzerResults* pResults, USBControlTransferParser& parser, U8 address )
@@ -357,12 +431,23 @@ bool USBControlTransferParser::IsCDCClassRequest() const
 
 void USBControlTransferParser::ParseStringDescriptor()
 {
+    U8 value_bytearray[ 2 ];
+
+
     // if this is a supported language table desriptor or actual string descriptor
     if( mRequest.GetRequestedDescriptorIndex() == 0 )
     {
+        FrameV2 fv2;
         while( mDescBytes > mParsedOffset && mPacketDataBytes > mPacketOffset )
         {
             pResults->AddFrame( pPacket->GetDataPayloadField( mPacketOffset, 2, mAddress, "wLANGID", Fld_wLANGID ) );
+            
+            U16 wValue = pPacket->GetDataPayload( mPacketOffset, 2 );
+            value_bytearray[ 0 ] = wValue >> 8;
+            value_bytearray[ 1 ] = wValue >> 0;
+            fv2.AddByteArray( "data", value_bytearray, 2 );
+            pResults->AddFrameV2( fv2, "wLANGID", pPacket->mBitBeginSamples[ 16 + mPacketOffset * 8 ],
+                                  pPacket->mBitBeginSamples[ 16 + ( mPacketOffset + 2 ) * 8 ] );
             mPacketOffset += 2;
             mParsedOffset += 2;
         }
@@ -373,11 +458,20 @@ void USBControlTransferParser::ParseStringDescriptor()
             stringDescriptor.clear();
 
         // the actual UNICODE string
+        FrameV2 fv2;
         while( mDescBytes > mParsedOffset && mPacketDataBytes > mPacketOffset )
         {
             stringDescriptor += ( char )pPacket->GetDataPayload( mPacketOffset, 1 );
 
             pResults->AddFrame( pPacket->GetDataPayloadField( mPacketOffset, 2, mAddress, "wchar", Fld_Wchar ) );
+
+            U16 wValue = pPacket->GetDataPayload( mPacketOffset, 2 );
+            value_bytearray[ 0 ] = wValue >> 8;
+            value_bytearray[ 1 ] = wValue >> 0;
+            fv2.AddByteArray( "data", value_bytearray, 2 );
+            pResults->AddFrameV2( fv2, "wchar", pPacket->mBitBeginSamples[ 16 + mPacketOffset * 8 ],
+                                  pPacket->mBitBeginSamples[ 16 + ( mPacketOffset + 2 ) * 8 ] );
+
             mPacketOffset += 2;
             mParsedOffset += 2;
         }

@@ -247,7 +247,7 @@ U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flag
 
             pResults->AddFrame( f );
             fv2.AddByte( "data", mData[ bc ] );
-            pResults->AddFrameV2( fv2, "result", *( mBitBeginSamples.begin() + bc * 8 ), *( mBitBeginSamples.begin() + ( bc + 1 ) * 8 ) );
+            pResults->AddFrameV2( fv2, "data", *( mBitBeginSamples.begin() + bc * 8 ), *( mBitBeginSamples.begin() + ( bc + 1 ) * 8 ) );
         }
 
         AddCRC16Frame( pResults );
@@ -280,7 +280,7 @@ U64 USBPacket::AddRawByteFrames( USBAnalyzerResults* pResults )
         f.mData1 = mData[ bc ];
         pResults->AddFrame( f );
         fv2.AddByte( "data", mData[ bc ] );
-        pResults->AddFrameV2( fv2, "result", *( mBitBeginSamples.begin() + bc * 8 ), *( mBitBeginSamples.begin() + ( bc + 1 ) * 8 ) );
+        pResults->AddFrameV2( fv2, "data", *( mBitBeginSamples.begin() + bc * 8 ), *( mBitBeginSamples.begin() + ( bc + 1 ) * 8 ) );
     }
 
     // add the EOP frame
@@ -329,7 +329,7 @@ void USBSignalState::AddFrame( USBAnalyzerResults* res )
     f.mData2 = 0;
 
     res->AddFrame( f );
-    fv2.AddInteger( "state", mState );
+    fv2.AddByte( "data", mState );
     res->AddFrameV2( fv2, "signal", mSampleBegin, mSampleEnd );
     
     res->CommitResults();
