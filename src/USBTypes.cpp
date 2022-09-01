@@ -120,7 +120,8 @@ void USBPacket::AddSyncAndPidFrames( USBAnalyzerResults* pResults, USBFrameFlags
     f.mFlags = flagPID;
     pResults->AddFrame( f );
     FrameV2 frame_v2_pid;
-    frame_v2_pid.AddByte( "pid", ( U8 )mPID );
+    //frame_v2_pid.AddByte( "pid", ( U8 )mPID );
+    frame_v2_pid.AddString( "value", GetPIDName( mPID ).c_str() );
     pResults->AddFrameV2( frame_v2_pid, "pid",*( mBitBeginSamples.begin() + 8), *( mBitBeginSamples.begin() + 16) );
 }
 
@@ -158,13 +159,13 @@ void USBPacket::AddCRC16Frame( USBAnalyzerResults* pResults )
     U8 crc_bytearray[ 2 ];
     U8 ccrc_bytearray[ 2 ];
 
-    crc_bytearray[ 0 ] = f.mData1 >> 8;
-    crc_bytearray[ 1 ] = f.mData1 >> 0;
-    ccrc_bytearray[ 0 ] = f.mData2 >> 8;
-    ccrc_bytearray[ 1 ] = f.mData2 >> 0;
+    crc_bytearray[ 0 ] = ( U8 )( f.mData1 >> 8 );
+    crc_bytearray[ 1 ] = ( U8 )( f.mData1 >> 0 );
+    ccrc_bytearray[ 0 ] = ( U8 )(f.mData2 >> 8 );
+    ccrc_bytearray[ 1 ] = ( U8 )(f.mData2 >> 0 );
 
-    frame_v2_crc.AddByteArray( "crc", crc_bytearray, 2 );
-    frame_v2_crc.AddByteArray( "ccrc", ccrc_bytearray, 2 );
+    frame_v2_crc.AddByteArray( "value", crc_bytearray, 2 );
+    frame_v2_crc.AddByteArray( "value2", ccrc_bytearray, 2 );
     pResults->AddFrameV2( frame_v2_crc, "crc16", *( mBitBeginSamples.end() - 17 ), mBitBeginSamples.back() );
 }
 
@@ -192,9 +193,9 @@ U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flag
             f.mType = FT_FrameNum;
             f.mData1 = GetFrameNum();
             f.mData2 = 0;
-            frame_bytearray[ 0 ] = f.mData1 >> 8;
-            frame_bytearray[ 1 ] = f.mData1 >> 0;
-            fv2.AddByteArray( "framenum", frame_bytearray, 2 );
+            frame_bytearray[ 0 ] = ( U8 )(f.mData1 >> 8);
+            frame_bytearray[ 1 ] = ( U8 )(f.mData1 >> 0);
+            fv2.AddByteArray( "value", frame_bytearray, 2 );
             fv2_type = "frame";
         }
         else
@@ -202,8 +203,8 @@ U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flag
             f.mType = FT_AddrEndp;
             f.mData1 = GetAddress();
             f.mData2 = GetEndpoint();
-            fv2.AddByte( "addr", ( U8 )f.mData1 );
-            fv2.AddByte( "endpoint", ( U8 )f.mData2 );
+            fv2.AddByte( "value", ( U8 )f.mData1 );
+            fv2.AddByte( "value2", ( U8 )f.mData2 );
             fv2_type = "addrendp";
         }
 
@@ -223,13 +224,13 @@ U64 USBPacket::AddPacketFrames( USBAnalyzerResults* pResults, USBFrameFlags flag
         U8 crc_bytearray[ 2 ];
         U8 ccrc_bytearray[ 2 ];
 
-        crc_bytearray[ 0 ] = f.mData1 >> 8;
-        crc_bytearray[ 1 ] = f.mData1 >> 0;
-        ccrc_bytearray[ 0 ] = f.mData2 >> 8;
-        ccrc_bytearray[ 1 ] = f.mData2 >> 0;
+        crc_bytearray[ 0 ] = ( U8 )(f.mData1 >> 8);
+        crc_bytearray[ 1 ] = ( U8 )(f.mData1 >> 0);
+        ccrc_bytearray[ 0 ] = ( U8 )(f.mData2 >> 8);
+        ccrc_bytearray[ 1 ] = ( U8 )(f.mData2 >> 0);
 
-        frame_v2_crc.AddByteArray( "crc", crc_bytearray, 2 );
-        frame_v2_crc.AddByteArray( "ccrc", ccrc_bytearray, 2 );
+        frame_v2_crc.AddByteArray( "value", crc_bytearray, 2 );
+        frame_v2_crc.AddByteArray( "value2", ccrc_bytearray, 2 );
         pResults->AddFrameV2( frame_v2_crc, "crc5", *( mBitBeginSamples.begin() + 27 ), mBitBeginSamples.back() );
     }
     else if( IsDataPacket() )

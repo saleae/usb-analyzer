@@ -86,6 +86,13 @@ Then, open the newly created solution file located here: `build\usb_analyzer.sln
 
 
 ## Output Frame Format
+
+**Warning**
+This is still WIP, and not fully complete,  So far my main attention has been to using the USB Decode level "packets"
+mode, I have now started to do some stuff in the "Control Transfers" 
+
+In earlier versions of this I created lots of different property names, in later pass I converted a lot of them
+to generic: "name" and "name2" as it makes the output table more compact
   
 ### Frame Type: `"addrendp"`
 
@@ -93,8 +100,8 @@ Address and End Point
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `addr` | bytes | usb addr |
-| `endpoint` | bytes | endpoint |
+| `value` | bytes | usb addr |
+| `value2` | bytes | endpoint |
 
 ### Frame Type: `"crc16"`
 | Property | Type | Description |
@@ -105,9 +112,16 @@ Address and End Point
 ### Frame Type: `"crc5"`
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `crc` | bytes | crc |
-| `ccrc` | bytes | calculated crd |
+| `value` | bytes | crc |
+| `value2` | bytes | calculated crd |
 
+### Frame Type: `"data"`
+
+one data byte
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `out` | byte | one byte of data |
 ### Frame Type: `"EOP"`
 
 End of Packet
@@ -118,30 +132,53 @@ Start of frame
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `framenum` | bytes | 16 bit frame number |
+| `value` | bytes | 16 bit frame number |
 
 ### Frame Type: `"pid"`
 
-Packet type id
+Packet type id - mapped to string names
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `pid` | bytes | packet id  | 
-|       |       |   0x69 = IN |
-|       |       |   0xE1 = OUT |
-|       |       |   0xA5 = SOF |
-|       |       |   0x2D = SETUP |
-|       |       |   0xC3 = DATA0 |
-|       |       |   0x4B = DATA1 |
+| `value` | string | packet id  | 
+|       |       |   IN |
+|       |       |   OUT |
+|       |       |   SOF |
+|       |       |   SETUP |
+|       |       |   DATA0 |
+|       |       |   DATA1 |
 
-### Frame Type: `"result"`
+### Frame Type: `"protocol"`
+
+(Control Transfer mode ) - WIP
+
+Secondary parts from PID of SETUP
 
 one data byte
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `out` | byte | one byte of data |
+| `bmRequestType` | byte | request type |
+| `bRequest` | byte | The request |
+| `desc` | string | descriptive name of request |
+| `wValue` | bytes | word value|
+| `wIndex` | bytes | word index |
+| `wLength` | bytes | how many bytes of data |
 
+### Frame Type: `"presult"`
+
+(Control Transfer mode ) - WIP
+
+The data returned from a setup request
+
+one data byte
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `name` | string | Logical field name |
+| `size` | byte | how many bytes  |
+| `type` | byte | type (not sure yet) |
+| `value` | bytes | value|
 ### Frame Type: `"sync"`
 
 End of Packet

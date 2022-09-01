@@ -1017,6 +1017,23 @@ void USBControlTransferParser::ParseStructure( USBStructField* descFields )
 
             pResults->AddFrame( f );
 
+            ///////////////////////////////////
+            FrameV2 fv2;
+
+            // First pass try adding the similar data
+            fv2.AddString( "name", descFields[ descFldCnt ].name );
+            fv2.AddByte( "size", descFields[ descFldCnt ].numBytes );
+            fv2.AddByte( "ftype", descFields[ descFldCnt ].formatter );
+
+            U8 newval_bytearray[ 2 ];
+            newval_bytearray[ 0 ] = newVal >> 8;
+            newval_bytearray[ 1 ] = newVal >> 0;
+            fv2.AddByteArray( "value", newval_bytearray, 2 );
+
+            pResults->AddFrameV2( fv2, "presult", f.mStartingSampleInclusive, f.mEndingSampleInclusive );
+
+            //////////////////////////////////
+
             ++mPacketOffset;
             ++mParsedOffset;
         }
@@ -1061,6 +1078,24 @@ void USBControlTransferParser::ParseStructure( USBStructField* descFields )
 
         pResults->AddFrame(
             pPacket->GetDataPayloadField( mPacketOffset, fldBytes, mAddress, descFields[ descFldCnt ].name, formatter, flags ) );
+
+            ///////////////////////////////////
+        FrameV2 fv2;
+
+        // First pass try adding the similar data
+        fv2.AddString( "name", descFields[ descFldCnt ].name );
+        fv2.AddByte( "size", descFields[ descFldCnt ].numBytes );
+        fv2.AddByte( "ftype", descFields[ descFldCnt ].formatter );
+        U32 newVal = pPacket->GetDataPayload( mPacketOffset, fldBytes );
+        U8 newval_bytearray[ 2 ];
+        newval_bytearray[ 0 ] = newVal >> 8;
+        newval_bytearray[ 1 ] = newVal >> 0;
+        fv2.AddByteArray( "value", newval_bytearray, 2 );
+
+        pResults->AddFrameV2( fv2, "presult", pPacket->mBitBeginSamples[ 16 + mPacketOffset * 8 ], 
+            pPacket->mBitBeginSamples[ 16 + (mPacketOffset + fldBytes) * 8 ] );
+
+        //////////////////////////////////
 
         mPacketOffset += fldBytes;
         mParsedOffset += fldBytes;
@@ -1277,7 +1312,7 @@ void USBControlTransferParser::ParseDataPacket( USBPacket& packet )
 {
     pPacket = &packet;
     mPacketOffset = 0;
-    mPacketDataBytes = packet.mData.size() - 4;
+    mPacketDataBytes = (int)packet.mData.size() - 4;
 
     if( mRequest.IsRequestedStandardDescriptor() )
     {
