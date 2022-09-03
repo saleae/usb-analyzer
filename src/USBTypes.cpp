@@ -588,8 +588,11 @@ bool USBSignalFilter::GetPacket( USBPacket& pckt, USBSignalState& sgnl )
            ( pckt.IsSOFPacket() && pckt.mData.size() == 4 );
 }
 
+extern DisplayBase last_display_base; // hack
+
 std::string int2str_sal( const U64 i, DisplayBase base, const int max_bits )
 {
+    last_display_base = base;
     char number_str[ 256 ];
     AnalyzerHelpers::GetNumberString( i, base, max_bits, number_str, sizeof( number_str ) );
     return number_str;

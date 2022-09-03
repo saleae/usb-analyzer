@@ -9,6 +9,17 @@
 #include "USBTypes.h"
 #include "USBLookupTables.h"
 
+// Hack to use some of the formatting code in USBAnalyzerResults and other
+extern DisplayBase last_display_base;
+extern std::string int2str_sal( const U64 i, DisplayBase base, const int max_bits );
+extern std::string GetSignedDataValue( const U8* pItem, DisplayBase display_base );
+extern std::string GetCollectionData( U8 data );
+extern std::string GetInputData( U8 data1, U8 data2 );
+extern std::string GetOutputAndFeatureData( U8 data1, U8 data2 );
+extern std::string GetUnitExponent( U8 data );
+extern std::string GetUnit( const U8* pItem );
+
+
 void USBCtrlTransFieldFrame::PackFrame( U32 data, U8 numBytes, U8 address, USBCtrlTransFieldType formatter, const char* name )
 {
     // mData1 format:
@@ -109,12 +120,12 @@ void USBPacket::AddStandardSetupPacketFrame( USBAnalyzerResults* pResults, USBCo
     if( bRequest == SET_DESCRIPTOR || bRequest == GET_DESCRIPTOR )
     {
         pResults->AddFrame( GetDataPayloadField( 2, 2, address, "wValue", Fld_wValue_Descriptor ) );
-        fv2.AddString( "desc", "descriptor" );
+        fv2.AddString( "text", "descriptor" );
     }
     else if( bRequest == SET_ADDRESS )
     {
         pResults->AddFrame( GetDataPayloadField( 2, 2, address, "wValue", Fld_wValue_Address ) );
-        fv2.AddString( "desc", "descriptor" );
+        fv2.AddString( "text", "descriptor" );
     }
     else
         pResults->AddFrame( GetDataPayloadField( 2, 2, address, "wValue" ) );
@@ -446,6 +457,7 @@ void USBControlTransferParser::ParseStringDescriptor()
             value_bytearray[ 0 ] = wValue >> 8;
             value_bytearray[ 1 ] = wValue >> 0;
             fv2.AddByteArray( "data", value_bytearray, 2 );
+            fv2.AddString( "text", GetLangName( wValue ) );
             pResults->AddFrameV2( fv2, "wLANGID", pPacket->mBitBeginSamples[ 16 + mPacketOffset * 8 ],
                                   pPacket->mBitBeginSamples[ 16 + ( mPacketOffset + 2 ) * 8 ] );
             mPacketOffset += 2;
@@ -469,6 +481,15 @@ void USBControlTransferParser::ParseStringDescriptor()
             value_bytearray[ 0 ] = wValue >> 8;
             value_bytearray[ 1 ] = wValue >> 0;
             fv2.AddByteArray( "data", value_bytearray, 2 );
+
+            if( ( wValue >= ' ' ) && ( wValue <= '~' ) )
+            {
+                char sz[ 2 ];
+                sz[ 0 ] = wValue & 0xff;
+                sz[ 1 ] = 0;
+                fv2.AddString( "text", sz );
+            }
+
             pResults->AddFrameV2( fv2, "wchar", pPacket->mBitBeginSamples[ 16 + mPacketOffset * 8 ],
                                   pPacket->mBitBeginSamples[ 16 + ( mPacketOffset + 2 ) * 8 ] );
 
@@ -991,6 +1012,16 @@ USBStructField CDCATMDefaultVCFields[] = {
     { NULL, 0, Fld_None },
 };
 
+std::string int2str_like( const U64 val )
+{
+    char buff[ 32 ];
+    if( last_display_base == Decimal )
+        snprintf( buff, sizeof( buff ), "%lu", (unsigned long)val );
+    else
+        snprintf( buff, sizeof( buff ), "0x%lX", ( unsigned long )val );
+    return buff;
+}
+
 void USBControlTransferParser::ParseStructure( USBStructField* descFields )
 {
     int descFldCnt = 0;
@@ -1021,14 +1052,14 @@ void USBControlTransferParser::ParseStructure( USBStructField* descFields )
             FrameV2 fv2;
 
             // First pass try adding the similar data
-            fv2.AddString( "name", descFields[ descFldCnt ].name );
-            fv2.AddByte( "size", descFields[ descFldCnt ].numBytes );
-            fv2.AddByte( "ftype", descFields[ descFldCnt ].formatter );
+            fv2.AddByte( "wLength", descFields[ descFldCnt ].numBytes );
+            fv2.AddByte( "value2", descFields[ descFldCnt ].formatter );
 
             U8 newval_bytearray[ 2 ];
             newval_bytearray[ 0 ] = newVal >> 8;
             newval_bytearray[ 1 ] = newVal >> 0;
             fv2.AddByteArray( "value", newval_bytearray, 2 );
+            fv2.AddString( "text", descFields[ descFldCnt ].name );
 
             pResults->AddFrameV2( fv2, "presult", f.mStartingSampleInclusive, f.mEndingSampleInclusive );
 
@@ -1083,14 +1114,46 @@ void USBControlTransferParser::ParseStructure( USBStructField* descFields )
         FrameV2 fv2;
 
         // First pass try adding the similar data
-        fv2.AddString( "name", descFields[ descFldCnt ].name );
-        fv2.AddByte( "size", descFields[ descFldCnt ].numBytes );
-        fv2.AddByte( "ftype", descFields[ descFldCnt ].formatter );
-        U32 newVal = pPacket->GetDataPayload( mPacketOffset, fldBytes );
+//        fv2.AddString( "text", descFields[ descFldCnt ].name );
+        fv2.AddByte( "wLength", descFields[ descFldCnt ].numBytes );
+        fv2.AddByte( "value2", descFields[ descFldCnt ].formatter );
+        U64 newVal = pPacket->GetDataPayload( mPacketOffset, fldBytes );
         U8 newval_bytearray[ 2 ];
-        newval_bytearray[ 0 ] = newVal >> 8;
-        newval_bytearray[ 1 ] = newVal >> 0;
+        newval_bytearray[ 0 ] = (newVal >> 8) & 0xff;
+        newval_bytearray[ 1 ] = newVal & 0xff;
         fv2.AddByteArray( "value", newval_bytearray, 2 );
+        // Lets try to build the same string as is shown in bubble text
+        std::string text_field;
+        switch( descFields[ descFldCnt ].formatter )
+        {
+        default:
+            // case FLD_None:
+            text_field = std::string( descFields[ descFldCnt ].name ) + "=" + int2str_like( newVal );
+                         //                         int2str_sal( newVal, last_display_base, 16 );
+
+            break;
+        case Fld_wVendorId:
+            text_field = std::string( descFields[ descFldCnt ].name ) + "=" + 
+                std::string( GetVendorName( ( U16 )newVal ) );
+            break;
+        case Fld_ClassCode:
+            text_field = std::string( descFields[ descFldCnt ].name ) + "=" + 
+                std::string( GetUSBClassName( ( U8 )newVal ) );
+            break;
+        case Fld_bEndpointAddress:
+            text_field = std::string( descFields[ descFldCnt ].name ) + "=" + int2str_like(newVal) + " Dir=";
+            text_field += ( newVal && 0x80 ) ? "OUT" : "IN";
+            break;
+            /*
+                        case Fld_BCD:
+                        case Fld_String:
+                        case Fld_bmAttributes_Config:
+                        case Fld_bMaxPower:
+                        case Fld_bmAttributes_Endpoint:
+            */
+        }
+        fv2.AddString( "text", text_field.c_str() );
+
 
         pResults->AddFrameV2( fv2, "presult", pPacket->mBitBeginSamples[ 16 + mPacketOffset * 8 ], 
             pPacket->mBitBeginSamples[ 16 + (mPacketOffset + fldBytes) * 8 ] );
@@ -1189,6 +1252,105 @@ void USBControlTransferParser::ParseStandardDescriptor()
     }
 }
 
+
+std::string GetHIDReportDescriptorItemDesc( const U8* pItem, U16 usagePage, int HidIndentLevel )
+{
+    // Probably should use the code in Analyzer Results, but will hack from my own code base
+    std::string indent( HidIndentLevel * 4, ' ' );
+
+    U8 tag = *pItem;
+
+    if( tag == 0xFE )
+        return "";
+
+    U32 uVal = 0;
+    int sVal = 0;
+    switch( tag & 0x03 )
+    { // Short Item data
+    case 0:
+        uVal = 0;
+        sVal = 0;
+        break;
+    case 1:
+        uVal = pItem[ 1 ];
+        sVal = S8( pItem[ 1 ] ); // could be better;
+        break;
+    case 2:
+        uVal = pItem[ 1 ] | ( pItem[ 2 ] << 8 );
+        sVal = *( S16* )( pItem + 1 );
+        break;
+    case 3:
+        uVal = pItem[ 1 ] | ( pItem[ 2 ] << 8 ) | ( pItem[ 3 ] << 16 ) | ( pItem[ 4 ] << 24 );
+        sVal = *( S32* )( pItem + 1 );
+        break;
+    }
+
+    std::string desc;
+
+
+    switch( tag & 0xfc )
+    {
+    case 0x4: // usage Page
+        desc = "Usage Page (" + GetHIDUsagePageName( uVal ) + ")";
+        break;
+    case 0x08: // usage
+        desc = "Usage (" + GetHIDUsageName( usagePage, uVal) + ")";
+        break;
+    case 0x14: // Logical Minimum (global)
+        desc = "Logical Minimum (" + GetSignedDataValue( pItem, last_display_base ) + ")";
+        break;
+    case 0x24: // Logical Maximum (global)
+        desc = "Logical Maximum (" + GetSignedDataValue( pItem, last_display_base ) + ")";
+        break;
+        break;
+    case 0x74: // Report Size (global)
+        desc = "Report Size (" + int2str_sal( pItem[ 1 ], last_display_base, 8 ) + ")";
+        break;
+    case 0x94: // Report Count (global)
+        desc = "Report count (" + int2str_sal( pItem[ 1 ], last_display_base, 8 ) + ")";
+        break;
+    case 0x84: // Report ID (global)
+        desc = "Report ID (" + int2str_sal( pItem[ 1 ], last_display_base, 8 ) + ")";
+        break;
+    case 0x18: // Usage Minimum (local)
+        desc = "Usage Minimum (" + GetSignedDataValue( pItem, last_display_base ) + ")";
+        break;
+    case 0x28: // Usage Maximum (local)
+        desc = "Usage Maximum (" + GetSignedDataValue( pItem, last_display_base ) + ")";
+        break;
+    case 0xA0: // Collection
+        desc = "Collection (" + GetCollectionData( pItem[ 1 ] ) + ")";
+        break;
+    case 0xC0: // End Collection
+        desc = "End Collection";
+        break;
+
+    case 0x80: // Input
+        desc = "Input (" + GetInputData( pItem[ 1 ], pItem[ 2 ] ) + ")";
+        break;
+    case 0x90: // Output
+        desc = "Output (" + GetOutputAndFeatureData( pItem[ 1 ], pItem[ 2 ] ) + ")";
+        break;
+    case 0xB0: // Feature
+        desc = "Feature (" + GetOutputAndFeatureData( pItem[ 1 ], pItem[ 2 ] ) + ")";
+        break;
+
+    case 0x34: // Physical Minimum (global)
+        desc = "Physical Minimum (" + GetSignedDataValue( pItem, last_display_base ) + ")";
+        break;
+    case 0x44: // Physical Maximum (global)
+        desc = "Physical Maximum (" + GetSignedDataValue( pItem, last_display_base ) + ")";
+        break;
+    case 0x54: // Unit Exponent (global)
+        desc = "Unit Exponent (" + GetUnitExponent( pItem[ 1 ] ) + ")";
+        break;
+    case 0x64: // Unit (global)
+        desc = "Unit (" + GetUnit( pItem ) + ")";
+        break;
+    }
+    return indent + desc;
+}
+
 void USBControlTransferParser::ParseHIDReportDescriptor()
 {
     // more bytes in the packet?
@@ -1220,8 +1382,31 @@ void USBControlTransferParser::ParseHIDReportDescriptor()
                 PopHIDUsagePage();
 
             // make the frame with all the data
-            pResults->AddFrame( pPacket->GetHIDItem( itemStartOffset, mPacketOffset - itemStartOffset, mHidRepDescItem, mHidIndentLevel,
-                                                     GetHIDUsagePage(), mHidItemCnt == 0 ? FF_DataDescriptor : FF_None ) );
+            int bcnt = mPacketOffset - itemStartOffset;
+            Frame f = pPacket->GetHIDItem( itemStartOffset, bcnt, mHidRepDescItem, mHidIndentLevel,
+                                                     GetHIDUsagePage(), mHidItemCnt == 0 ? FF_DataDescriptor : FF_None );
+            pResults->AddFrame( f );
+
+            ///////////////////////////////////
+            FrameV2 fv2;
+
+            U8 itemSize = GetNumHIDItemDataBytes( mHidRepDescItem[ 0 ] ) + 1;
+            fv2.AddByteArray( "value", mHidRepDescItem, itemSize );
+
+            U16 usagePage = GetHIDUsagePage();
+            U8 newval_bytearray[ 2 ];
+            newval_bytearray[ 0 ] = usagePage >> 8;
+            newval_bytearray[ 1 ] = usagePage >> 0;
+            fv2.AddByteArray( "value2", newval_bytearray, 2 );
+            fv2.AddByte( "wValue", ( U8 )mHidIndentLevel );
+
+            // First pass try adding the similar data
+            std::string str = GetHIDReportDescriptorItemDesc( mHidRepDescItem, usagePage, mHidIndentLevel );
+            fv2.AddString( "text", str.c_str() );
+
+            pResults->AddFrameV2( fv2, "hiditem", pPacket->mBitBeginSamples[ 16 + itemStartOffset * 8 ], 
+                pPacket->mBitBeginSamples[ 16 + (itemStartOffset + bcnt) * 8 ]);
+
 
             // collection increases the indent level
             if( IsHIDItemCollection( mHidRepDescItem[ 0 ] ) )

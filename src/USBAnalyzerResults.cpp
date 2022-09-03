@@ -100,8 +100,12 @@ std::string GetHIDItemUsage( U16 usagePage, const U8* pItem )
     return GetHIDUsageName( usagePage, *( U16* )( pItem + 1 ) );
 }
 
+// Hack for now remember last one used. 
+DisplayBase last_display_base = Decimal;
+
 std::string GetSignedDataValue( const U8* pItem, DisplayBase display_base )
 {
+    last_display_base = display_base; 
     int numBytes = GetNumHIDItemDataBytes( pItem[ 0 ] ); // number of data bytes
 
     if( numBytes == 0 )
@@ -145,10 +149,10 @@ std::string GetSignedDataValue( const U8* pItem, DisplayBase display_base )
 
 std::string GetUnitExponent( U8 data )
 {
-    if( data > 0xF0 )
-        return "undefined";
-
     const char* results[] = { "0", "1", "2", "3", "4", "5", "6", "7", "-8", "-7", "-6", "-5", "-4", "-3", "-2", "-1" };
+
+    if( data >= (sizeof(results)/sizeof(results[0])))
+        return "undefined";
 
     return results[ data ];
 }
