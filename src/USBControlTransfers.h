@@ -257,9 +257,9 @@ class USBControlTransferParser
 
     bool IsCDCClassRequest() const;
 
-    void ParseStringDescriptor();
+    bool ParseStringDescriptor();
     void ParseStructure( USBStructField* descFields );
-    void ParseStandardDescriptor();
+    bool ParseStandardDescriptor();
 
     void SetHIDUsagePage( U16 usagePage )
     {

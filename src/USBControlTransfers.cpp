@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 #include <AnalyzerChannelData.h>
 #include <AnalyzerHelpers.h>
@@ -355,7 +356,7 @@ bool USBControlTransferParser::IsCDCClassRequest() const
     return false;
 }
 
-void USBControlTransferParser::ParseStringDescriptor()
+bool USBControlTransferParser::ParseStringDescriptor()
 {
     // if this is a supported language table desriptor or actual string descriptor
     if( mRequest.GetRequestedDescriptorIndex() == 0 )
@@ -384,8 +385,12 @@ void USBControlTransferParser::ParseStringDescriptor()
 
         // do we have the entire string?
         if( mDescBytes == mParsedOffset )
+        {
             pResults->AddStringDescriptor( mAddress, mRequest.GetRequestedDescriptorIndex(), stringDescriptor );
+        }
     }
+    // return true if we've finished parsing the string descriptor, acording to the parsed bLength
+    return mDescBytes == mParsedOffset;
 }
 
 void USBControlTransferParser::ParseUnknownResponse()
@@ -976,7 +981,7 @@ void USBControlTransferParser::ParseStructure( USBStructField* descFields )
     }
 }
 
-void USBControlTransferParser::ParseStandardDescriptor()
+bool USBControlTransferParser::ParseStandardDescriptor()
 {
     USBStructField* descFields = NULL;
     if( mDescType == DT_DEVICE )
@@ -1057,7 +1062,9 @@ void USBControlTransferParser::ParseStandardDescriptor()
     {
         mParsedOffset = 0;
         mDescType = DT_Undefined;
+        return true;
     }
+    return false;
 }
 
 void USBControlTransferParser::ParseHIDReportDescriptor()
@@ -1187,8 +1194,17 @@ void USBControlTransferParser::ParseDataPacket( USBPacket& packet )
 
     if( mRequest.IsRequestedStandardDescriptor() )
     {
+        bool detected_complete_descriptor = false;
         while( mPacketDataBytes > mPacketOffset )
         {
+            if( detected_complete_descriptor )
+            {
+                // it's possible that the bLength of the descriptor was too small. This would be a bug in the device descriptor, but it has
+                // happened.
+                std::cerr << "Descriptor length shorter than packet length. Packet length: " << mPacketDataBytes
+                          << " processed bytes: " << mPacketOffset << " reported descriptor length: " << mDescBytes << "\n";
+                break;
+            }
             U8 interfaceClass = mInterfaceClasses[ mInterfaceNumber ];
 
             if( mParsedOffset == 0 ) // are we just starting with this descriptor?
@@ -1226,9 +1242,9 @@ void USBControlTransferParser::ParseDataPacket( USBPacket& packet )
             else
             {
                 if( mDescType == DT_STRING )
-                    ParseStringDescriptor();
+                    detected_complete_descriptor = ParseStringDescriptor();
                 else
-                    ParseStandardDescriptor();
+                    detected_complete_descriptor = ParseStandardDescriptor();
             }
         }
     }
