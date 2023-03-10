@@ -1235,8 +1235,8 @@ void USBControlTransferParser::ParseDataPacket( USBPacket& packet )
                     bool detected_complete_descriptor = ParseStringDescriptor();
                     if( detected_complete_descriptor && mPacketDataBytes > mPacketOffset )
                     {
-                        // we finished parsing the complete string descriptor, according to bLength, however there are still bytes left in the
-                        // packet.
+                        // we finished parsing the complete string descriptor, according to bLength, however there are still bytes left in
+                        // the packet.
                         std::cerr << "String descriptor length shorter than packet length. Packet length: " << mPacketDataBytes
                                   << " processed bytes: " << mPacketOffset << " reported descriptor length: " << mDescBytes << "\n";
                         break;
