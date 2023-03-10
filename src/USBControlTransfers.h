@@ -259,7 +259,7 @@ class USBControlTransferParser
 
     bool ParseStringDescriptor();
     void ParseStructure( USBStructField* descFields );
-    bool ParseStandardDescriptor();
+    void ParseStandardDescriptor();
 
     void SetHIDUsagePage( U16 usagePage )
     {
