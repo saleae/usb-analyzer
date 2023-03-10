@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 #include <AnalyzerChannelData.h>
 #include <AnalyzerHelpers.h>
@@ -355,7 +356,7 @@ bool USBControlTransferParser::IsCDCClassRequest() const
     return false;
 }
 
-void USBControlTransferParser::ParseStringDescriptor()
+bool USBControlTransferParser::ParseStringDescriptor()
 {
     // if this is a supported language table desriptor or actual string descriptor
     if( mRequest.GetRequestedDescriptorIndex() == 0 )
@@ -384,8 +385,12 @@ void USBControlTransferParser::ParseStringDescriptor()
 
         // do we have the entire string?
         if( mDescBytes == mParsedOffset )
+        {
             pResults->AddStringDescriptor( mAddress, mRequest.GetRequestedDescriptorIndex(), stringDescriptor );
+        }
     }
+    // return true if we've finished parsing the string descriptor, according to the parsed bLength
+    return mDescBytes == mParsedOffset;
 }
 
 void USBControlTransferParser::ParseUnknownResponse()
@@ -1226,9 +1231,21 @@ void USBControlTransferParser::ParseDataPacket( USBPacket& packet )
             else
             {
                 if( mDescType == DT_STRING )
-                    ParseStringDescriptor();
+                {
+                    bool detected_complete_descriptor = ParseStringDescriptor();
+                    if( detected_complete_descriptor && mPacketDataBytes > mPacketOffset )
+                    {
+                        // we finished parsing the complete string descriptor, according to bLength, however there are still bytes left in the
+                        // packet.
+                        std::cerr << "String descriptor length shorter than packet length. Packet length: " << mPacketDataBytes
+                                  << " processed bytes: " << mPacketOffset << " reported descriptor length: " << mDescBytes << "\n";
+                        break;
+                    }
+                }
                 else
+                {
                     ParseStandardDescriptor();
+                }
             }
         }
     }
