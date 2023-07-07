@@ -14,6 +14,7 @@ Dependencies:
 
 - XCode with command line tools
 - CMake 3.13+
+- git
 
 Installing command line tools after XCode is installed:
 
@@ -50,6 +51,7 @@ Dependencies:
 
 - CMake 3.13+
 - gcc 4.8+
+- git
 
 Misc dependencies:
 
@@ -72,6 +74,7 @@ Dependencies:
 
 - Visual Studio 2019
 - CMake 3.13+
+- git
 
 **Visual Studio 2019**
 
@@ -87,6 +90,11 @@ Note - if CMake has any problems with the MSVC compiler, it's likely a component
 
 Download and install the latest CMake release here.
 https://cmake.org/download/
+
+**git**
+
+Download and install git here.
+https://git-scm.com/
 
 Building the analyzer:
 
