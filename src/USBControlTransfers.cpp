@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <locale>
+#include <codecvt>
 
 #include <AnalyzerChannelData.h>
 #include <AnalyzerHelpers.h>
@@ -371,12 +373,13 @@ bool USBControlTransferParser::ParseStringDescriptor()
     else
     {
         if( mParsedOffset == 2 )
-            stringDescriptor.clear();
+            utf16StringDescriptor.clear();
 
         // the actual UNICODE string
         while( mDescBytes > mParsedOffset && mPacketDataBytes > mPacketOffset )
         {
-            stringDescriptor += ( char )pPacket->GetDataPayload( mPacketOffset, 1 );
+            char16_t code_unit = static_cast<char16_t>( pPacket->GetDataPayload( mPacketOffset, 2 ) );
+            utf16StringDescriptor.push_back( code_unit );
 
             pResults->AddFrame( pPacket->GetDataPayloadField( mPacketOffset, 2, mAddress, "wchar", Fld_Wchar ) );
             mPacketOffset += 2;
@@ -386,7 +389,9 @@ bool USBControlTransferParser::ParseStringDescriptor()
         // do we have the entire string?
         if( mDescBytes == mParsedOffset )
         {
-            pResults->AddStringDescriptor( mAddress, mRequest.GetRequestedDescriptorIndex(), stringDescriptor );
+            std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+            std::string utf8_string_descriptor = convert.to_bytes( utf16StringDescriptor );
+            pResults->AddStringDescriptor( mAddress, mRequest.GetRequestedDescriptorIndex(), utf8_string_descriptor );
         }
     }
     // return true if we've finished parsing the string descriptor, according to the parsed bLength

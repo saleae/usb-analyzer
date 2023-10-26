@@ -233,7 +233,8 @@ class USBControlTransferParser
 
     USBRequest mRequest;
 
-    std::string stringDescriptor;
+    std::u16string utf16StringDescriptor;
+
 
     // these are only valid during a ParsePacket call, and invalid before and after
     USBPacket* pPacket;

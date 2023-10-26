@@ -1,7 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-
+#include <locale>
+#include <codecvt>
 #include <stdio.h>
 
 #include <AnalyzerHelpers.h>
@@ -517,7 +518,13 @@ void GetCtrlTransFrameDesc( const Frame& frm, DisplayBase display_base, std::vec
     }
     else if( formatter == Fld_Wchar )
     {
-        desc = std::string( " char='" ) + char( val & 0xff ) + '\'';
+        // utf-8 encode the utf-16 character.
+        std::u16string utf_16_str;
+        char16_t u16_char = static_cast<char16_t>( val );
+        utf_16_str.push_back( u16_char );
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+        std::string utf8_str = convert.to_bytes( utf_16_str );
+        desc = std::string( " char='" ) + utf8_str + '\'';
     }
     else if( formatter == Fld_wLANGID )
     {
