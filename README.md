@@ -4,7 +4,7 @@ Saleae USB Analyzer
 
 ## Getting Started
 
-The following documentation describes getting this analyzer building locally. For more detailed information about the Analyzer SDK, debugging, CI build, and more, checkout the readme from the Sample Analyzer repository:
+The following documentation describes how to build this analyzer locally. For more detailed information about the Analyzer SDK, debugging, CI builds, and more, check out the readme in the Sample Analyzer repository.
 
 https://github.com/saleae/SampleAnalyzer
 
@@ -16,7 +16,7 @@ Dependencies:
 - CMake 3.13+
 - git
 
-Installing command line tools after XCode is installed:
+Install command line tools after XCode is installed:
 
 ```
 xcode-select --install
@@ -24,7 +24,7 @@ xcode-select --install
 
 Then open XCode, open Preferences from the main menu, go to locations, and select the only option under 'Command line tools'.
 
-Installing CMake on MacOS:
+Install CMake on MacOS:
 
 1. Download the binary distribution for MacOS, `cmake-*-Darwin-x86_64.dmg`
 2. Install the usual way by dragging into applications.
@@ -36,7 +36,7 @@ Installing CMake on MacOS:
 
 _Note: Errors may occur if older versions of CMake are installed._
 
-Building the analyzer:
+Build the analyzer:
 
 ```
 mkdir build
@@ -59,7 +59,7 @@ Misc dependencies:
 sudo apt-get install build-essential
 ```
 
-Building the analyzer:
+Build the analyzer:
 
 ```
 mkdir build
@@ -96,7 +96,7 @@ https://cmake.org/download/
 Download and install git here.
 https://git-scm.com/
 
-Building the analyzer:
+Build the analyzer:
 
 ```
 mkdir build
@@ -105,6 +105,12 @@ cmake .. -A x64
 ```
 
 Then, open the newly created solution file located here: `build\usb_analyzer.sln`
+
+Optionally, build from the command line without opening Visual Studio:
+
+```
+cmake --build .
+```
 
 The built analyzer DLLs will be located here:
 
